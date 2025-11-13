@@ -45,6 +45,7 @@ DEFAULT_MOOD_ALIASES = {
 }
 DEFAULT_MOOD_TAG = "#普通#"
 DEFAULT_AUTO_PICK_MESSAGE_IMAGE = True
+DEFAULT_REPLY_WITH_QUOTE = True
 MIN_BASE64_LENGTH = 80
 
 
@@ -368,19 +369,19 @@ class SketchbookRenderAction(BaseAction):
                 "素描本插件尚未准备好："
                 + (self._renderer_error or "请检查资源路径配置。")
             )
-            await self.send_text(message, set_reply=True, reply_message=self.action_message)
+            await self.send_text(message, **self._reply_options())
             return False, message
         text = self._extract_text()
         mood = self._extract_mood()
         try:
             content_image = self._resolve_image(renderer.assets_root)
         except SketchbookRendererError as exc:
-            await self.send_text(str(exc), set_reply=True, reply_message=self.action_message)
+            await self.send_text(str(exc), **self._reply_options())
             return False, str(exc)
 
         if not text and content_image is None:
             message = "没有提供文本内容，也没有可用图片，无法渲染素描本。"
-            await self.send_text(message, set_reply=True, reply_message=self.action_message)
+            await self.send_text(message, **self._reply_options())
             return False, message
 
         try:
@@ -390,18 +391,17 @@ class SketchbookRenderAction(BaseAction):
                 content_image=content_image,
             )
         except SketchbookRendererError as exc:
-            await self.send_text(str(exc), set_reply=True, reply_message=self.action_message)
+            await self.send_text(str(exc), **self._reply_options())
             return False, str(exc)
 
         image_base64 = base64.b64encode(result.png_bytes).decode("ascii")
         sent = await self.send_image(
             image_base64,
-            set_reply=True,
-            reply_message=self.action_message,
+            **self._reply_options(),
         )
         if not sent:
             message = "素描本图片生成成功，但发送失败。"
-            await self.send_text(message, set_reply=True, reply_message=self.action_message)
+            await self.send_text(message, **self._reply_options())
             return False, message
 
         summary = f"生成素描本图片并发送，mood={result.mood_tag}"
@@ -434,6 +434,11 @@ class SketchbookRenderAction(BaseAction):
         if isinstance(mood, str):
             return mood.strip()
         return None
+
+    def _reply_options(self) -> Dict[str, Any]:
+        if bool(self.get_config("sketchbook.reply_with_quote", DEFAULT_REPLY_WITH_QUOTE)):
+            return {"set_reply": True, "reply_message": self.action_message}
+        return {"set_reply": False, "reply_message": None}
 
     def _update_mood_help(self, mood_tags: Iterable[str]) -> None:
         tags = sorted(tag for tag in mood_tags if isinstance(tag, str) and tag.strip())
@@ -649,6 +654,16 @@ class AnanSketchbookPlugin(BasePlugin):
             "allow_upscale": ConfigField(type=bool, default=True, description="图片是否允许放大以填满区域。"),
             "max_font_height": ConfigField(type=int, default=64, description="文本的最大字号像素。"),
             "line_spacing": ConfigField(type=float, default=0.15, description="文本行间距比例。"),
+            "auto_pick_message_image": ConfigField(
+                type=bool,
+                default=DEFAULT_AUTO_PICK_MESSAGE_IMAGE,
+                description="当 action 未提供图片时，是否尝试读取最近一条消息中的图片。",
+            ),
+            "reply_with_quote": ConfigField(
+                type=bool,
+                default=DEFAULT_REPLY_WITH_QUOTE,
+                description="发送图片/文本时是否引用触发该动作的消息。",
+            ),
         },
     }
 
