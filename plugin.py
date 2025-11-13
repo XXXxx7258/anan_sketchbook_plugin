@@ -345,7 +345,7 @@ class SketchbookRenderAction(BaseAction):
     activation_type = ActionActivationType.LLM_JUDGE
     action_parameters = {
         "text": "当你想强调、写在素描本上的核心内容。",
-        "mood": "LLM 主动选择的表情标签（如 #开心# 或 happy），用于匹配差分底图。",
+        "mood": "表情标签（如 #开心# 或 happy），反应你此时的心情，用于匹配差分底图。",
         "image_base64": "可选，直接传入要贴到素描本上的 base64 图片。",
         "image_path": "可选，本地图片路径，便于复用已经下载的临时文件。",
         "message_image_index": "当自动读取最近一条消息的图片时，选择第 N 张（从 1 开始）。",
@@ -353,7 +353,7 @@ class SketchbookRenderAction(BaseAction):
     }
     action_require = [
         "当你想突出自己说的话、让情绪起伏更直观时使用。",
-        "当你想强调当前心情/状态并以差分底图表达时使用，由 LLM 自行挑选 mood。",
+        "当你想强调当前心情/状态并以差分底图表达时使用。",
     ]
     associated_types = ["image"]
 
