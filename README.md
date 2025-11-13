@@ -24,4 +24,6 @@
 - Python 3.11+
 - Pillow >= 12.0.0（用于图片处理）
 
+插件来源：https://github.com/MarkCup-Official/Anan-s-Sketchbook-Chat-Box
+
 其他依赖由 MaiBot 主程序提供，无需额外安装。
