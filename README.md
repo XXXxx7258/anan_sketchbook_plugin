@@ -18,6 +18,8 @@
    - `base_overlay_file`：可选遮罩层。
    - `text_box_topleft` / `image_box_bottomright`：文字/图片区域坐标。
    - `padding` / `max_font_height` / `line_spacing` 等排版参数。
+   - `auto_pick_message_image`：当 Action 没传图片时是否自动拾取最近消息图片（默认 true）。
+   - `reply_with_quote`：发送结果时是否引用触发消息（默认 true）。
    - 若要自定义差分，把 `sketchbook.mood_mapping` / `sketchbook.mood_aliases` 手动写入 `config.toml`。
 4. LLM Planner 会在需要表达心情时选择 `anan_sketchbook_render` Action，传入 `text`、`mood` 及可选 `image_base64` 等字段。
 
