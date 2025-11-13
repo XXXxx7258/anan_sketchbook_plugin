@@ -5,7 +5,7 @@ import io
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Type
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Type
 
 from maim_message import Seg
 from PIL import Image, UnidentifiedImageError
@@ -343,17 +343,18 @@ class SketchbookRenderAction(BaseAction):
     action_name = "anan_sketchbook_render"
     action_description = "把指定文本和可选图片渲染到安安素描本底图，并以图片形式回复。"
     activation_type = ActionActivationType.LLM_JUDGE
-    action_parameters = {
+    base_action_parameters = {
         "text": "当你想强调、写在素描本上的核心内容。",
-        "mood": "表情标签（如 #开心# 或 happy），反应你此时的心情，用于匹配差分底图。",
+        "mood": "当你想表达的表情标签（例如 #开心# 或 happy），用于匹配差分底图。",
         "image_base64": "可选，直接传入要贴到素描本上的 base64 图片。",
         "image_path": "可选，本地图片路径，便于复用已经下载的临时文件。",
         "message_image_index": "当自动读取最近一条消息的图片时，选择第 N 张（从 1 开始）。",
         "use_message_image": "布尔值，是否允许从最近消息中取图，默认遵循配置。",
     }
+    action_parameters = base_action_parameters.copy()
     action_require = [
         "当你想突出自己说的话、让情绪起伏更直观时使用。",
-        "当你想强调当前心情/状态并以差分底图表达时使用。",
+        "当你想强调当前心情/状态并以差分底图表达时使用，自行挑选 mood。",
     ]
     associated_types = ["image"]
 
@@ -369,7 +370,6 @@ class SketchbookRenderAction(BaseAction):
             )
             await self.send_text(message, set_reply=True, reply_message=self.action_message)
             return False, message
-
         text = self._extract_text()
         mood = self._extract_mood()
         try:
@@ -408,14 +408,19 @@ class SketchbookRenderAction(BaseAction):
         return True, summary
 
     def _ensure_renderer(self) -> Optional[SketchbookRenderer]:
-        if self._renderer or self._renderer_error:
+        if self._renderer:
             return self._renderer
+        if self._renderer_error:
+            return None
         try:
-            self._renderer = SketchbookRenderer.from_plugin_config(self.plugin_config or {})
+            renderer = SketchbookRenderer.from_plugin_config(self.plugin_config or {})
+            self._renderer = renderer
+            self._update_mood_help(renderer.config.baseimage_mapping.keys())
+            return renderer
         except SketchbookRendererError as exc:
             self._renderer_error = str(exc)
             logger.error("%s 构建渲染器失败：%s", self.log_prefix, exc)
-        return self._renderer
+            return None
 
     def _extract_text(self) -> str:
         for key in ("text", "content", "message"):
@@ -429,6 +434,16 @@ class SketchbookRenderAction(BaseAction):
         if isinstance(mood, str):
             return mood.strip()
         return None
+
+    def _update_mood_help(self, mood_tags: Iterable[str]) -> None:
+        tags = sorted(tag for tag in mood_tags if isinstance(tag, str) and tag.strip())
+        if not tags:
+            return
+        self.action_parameters = self.base_action_parameters.copy()
+        tag_list = ", ".join(tags)
+        self.action_parameters["mood"] = (
+            f"当你想表达的表情标签，可用：{tag_list}"
+        )
 
     def _resolve_image(self, assets_root: Path) -> Optional[Image.Image]:
         base64_payload = self.action_data.get("image_base64") or self.action_data.get("image")
