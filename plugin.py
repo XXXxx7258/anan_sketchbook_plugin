@@ -342,7 +342,10 @@ class SketchbookRenderAction(BaseAction):
     """供 LLM 选择的素描本渲染 Action。"""
 
     action_name = "anan_sketchbook_render"
-    action_description = "把指定文本和可选图片渲染到安安素描本底图，并以图片形式回复。"
+    action_description = (
+        "把指定文本和可选图片渲染到安安素描本底图，并以图片形式回复。"
+        "单独执行此动作即可，无需组合其他动作。"
+    )
     activation_type = ActionActivationType.LLM_JUDGE
     base_action_parameters = {
         "text": "当你想强调、写在素描本上的核心内容。",
@@ -356,6 +359,7 @@ class SketchbookRenderAction(BaseAction):
     action_require = [
         "当你想突出自己说的话、让情绪起伏更直观时使用。",
         "当你想强调当前心情/状态并以差分底图表达时使用，自行挑选 mood。",
+        "选用此动作时请不要再选择其他动作（reply），情绪和回复内容以图片呈现即可。",
     ]
     associated_types = ["image"]
 
